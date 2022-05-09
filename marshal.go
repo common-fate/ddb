@@ -24,3 +24,13 @@ func encoderWithJSONTagKey(eo *attributevalue.EncoderOptions) {
 func decoderWithJSONTagKey(do *attributevalue.DecoderOptions) {
 	do.TagKey = "json"
 }
+
+// Marshaler can convert data into a format to be saved in DynamoDB.
+type Marshaler interface {
+	MarshalDDB() (map[string]types.AttributeValue, error)
+}
+
+// Unmarshaler can read data from DynamoDB.
+type Unmarshaler interface {
+	UnmarshalDDB(item map[string]types.AttributeValue) error
+}
