@@ -30,14 +30,3 @@ func Example_simple() {
 
 	// la is now populated with []Apple as fetched from DynamoDB
 }
-
-type ListApplesByColor struct {
-	Color  string
-	Result []Apple `ddb:"result"`
-}
-
-func (l *ListApplesByColor) BuildQuery() (*dynamodb.QueryInput, error) {
-	// the empty QueryInput is just for the example.
-	// in a real query this wouldn't be empty.
-	return &dynamodb.QueryInput{}, nil
-}
