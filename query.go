@@ -67,15 +67,22 @@ func (c *Client) Query(ctx context.Context, qb QueryBuilder) error {
 		return err
 	}
 	if resultTag != nil {
-		out = *resultTag
+		out = resultTag.Interface()
 	}
 
 	// Otherwise, default to the unmarshalling logic provided by the attributevalue package.
 	return attributevalue.UnmarshalListOfMaps(got.Items, out)
 }
 
+// findResultsTag returns the first struct field with a `ddb:"result"` tag.
 func findResultsTag(out interface{}) (*reflect.Value, error) {
 	v := reflect.ValueOf(out).Elem()
+
+	if v.Kind() != reflect.Struct {
+		// we can't parse this
+		return nil, nil
+	}
+
 	if !v.CanAddr() {
 		return nil, fmt.Errorf("cannot assign to the item passed, item must be a pointer in order to assign")
 	}
