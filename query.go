@@ -16,7 +16,7 @@ type QueryBuilder interface {
 // QueryOutputUnmarshalers implement custom logic to
 // unmarshal the results of a DynamoDB QueryItems call.
 type QueryOutputUnmarshaler interface {
-	UnmarshalQueryOutput(got *dynamodb.QueryOutput) error
+	UnmarshalQueryOutput(out *dynamodb.QueryOutput) error
 }
 
 // Query DynamoDB using a given QueryBuilder.
