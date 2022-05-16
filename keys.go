@@ -6,12 +6,12 @@ package ddb
 type Keys struct {
 	PK     string
 	SK     string
-	GSI1PK *string
-	GSI1SK *string
-	GSI2PK *string
-	GSI2SK *string
-	GSI3PK *string
-	GSI3SK *string
+	GSI1PK string
+	GSI1SK string
+	GSI2PK string
+	GSI2SK string
+	GSI3PK string
+	GSI3SK string
 }
 
 // Keyers give DynamoDB keys to be used when inserting an item.
