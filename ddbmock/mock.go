@@ -26,9 +26,9 @@ func New() *Client {
 	}
 }
 
-func (m *Client) OnQuery(ap ddb.QueryBuilder) {
-	name := reflect.TypeOf(ap).String()
-	m.results[name] = ap
+func (m *Client) Mock(qb interface{}) {
+	name := reflect.TypeOf(qb).String()
+	m.results[name] = qb
 }
 
 func (m *Client) Query(ctx context.Context, qb ddb.QueryBuilder) error {

@@ -2,6 +2,8 @@ package ddb
 
 import (
 	"context"
+	"fmt"
+	"reflect"
 
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
@@ -9,6 +11,9 @@ import (
 
 // QueryBuilders build query inputs for DynamoDB access patterns.
 // The inputs are passed to the QueryItems DynamoDB API.
+//
+// When writing a new QueryBuilder access pattern you should always
+// implement integration tests for it against a live DynamoDB database.
 type QueryBuilder interface {
 	BuildQuery() (*dynamodb.QueryInput, error)
 }
@@ -19,10 +24,21 @@ type QueryOutputUnmarshaler interface {
 	UnmarshalQueryOutput(out *dynamodb.QueryOutput) error
 }
 
-// Query DynamoDB using a given QueryBuilder.
-// The results are unmarshaled into the QueryBuilder.
-// To implement custom unmarshaling logic, implement the QueryOutputUnmarshaler
-// interface on your QueryBuilder struct.
+// Query DynamoDB using a given QueryBuilder. Under the hood, this uses the
+// QueryItems API.
+//
+// The QueryBuilder 'qb' defines the query, as well as how to unmarshal the
+// result back into Go objects. The unmarshaling logic works as follows:
+//
+// 1. If qb implements UnmarshalQueryOutput, call it and return.
+//
+// 2. If qb contains a field with a `ddb:"result"` struct tag,
+// unmarshal results to that field.
+//
+// 3. Unmarshal the results directly to qb.
+//
+// The examples in this package show how to write simple and complex access patterns
+// which use each of the three methods above.
 func (c *Client) Query(ctx context.Context, qb QueryBuilder) error {
 	q, err := qb.BuildQuery()
 	if err != nil {
@@ -43,6 +59,35 @@ func (c *Client) Query(ctx context.Context, qb QueryBuilder) error {
 		return rp.UnmarshalQueryOutput(got)
 	}
 
+	var out interface{} = qb
+
+	// check if the QueryBuilder contains a 'ddb:"result"' struct tag
+	resultTag, err := findResultsTag(qb)
+	if err != nil {
+		return err
+	}
+	if resultTag != nil {
+		out = *resultTag
+	}
+
 	// Otherwise, default to the unmarshalling logic provided by the attributevalue package.
-	return attributevalue.UnmarshalListOfMaps(got.Items, qb)
+	return attributevalue.UnmarshalListOfMaps(got.Items, out)
+}
+
+func findResultsTag(out interface{}) (*reflect.Value, error) {
+	v := reflect.ValueOf(out).Elem()
+	if !v.CanAddr() {
+		return nil, fmt.Errorf("cannot assign to the item passed, item must be a pointer in order to assign")
+	}
+
+	for i := 0; i < v.NumField(); i++ {
+		f := v.Type().Field(i)
+		tag, ok := f.Tag.Lookup("ddb")
+		if ok && tag == "result" {
+			// return nil, nil
+			addr := reflect.Indirect(v).Field(i).Addr()
+			return &addr, nil
+		}
+	}
+	return nil, nil
 }
