@@ -126,7 +126,7 @@ func callGoMockQuery(t TestReporter, goMockStorage interface{}, query ddb.QueryB
 	}
 
 	// call Query(ctx, matcher)
-	ctx := context.Background()
+	ctx := gomock.Any()
 	matcher := queryMatcher(query)
 	res := m.Call([]reflect.Value{reflect.ValueOf(ctx), reflect.ValueOf(matcher)})
 
