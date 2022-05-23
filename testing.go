@@ -57,8 +57,13 @@ func toKeyers(t *testing.T, in interface{}) []Keyer {
 		for i := 0; i < s.Len(); i++ {
 			k, ok := s.Index(i).Interface().(Keyer)
 			if !ok {
+				// try converting as a pointer
+				k, ok = s.Index(i).Addr().Interface().(Keyer)
+			}
+			if !ok {
 				t.Fatalf("fixture %s must implement Keyer interface", reflect.TypeOf(s.Index(i)))
 			}
+
 			keyers = append(keyers, k)
 		}
 		return keyers
