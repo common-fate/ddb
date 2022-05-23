@@ -3,7 +3,6 @@ package ddb
 import (
 	"context"
 	"os"
-	"reflect"
 	"testing"
 
 	"github.com/r3labs/diff/v2"
@@ -32,44 +31,6 @@ func RunQueryTests(t *testing.T, c *Client, testcases []QueryTestCase) {
 			assert.Len(t, changelog, 0)
 		})
 	}
-}
-
-// PutFixtures inserts fixture data into the database.
-// It's useful for provisioning data to be used in integration tests.
-func PutFixtures(t *testing.T, c *Client, fixtures interface{}) {
-	keyers := toKeyers(t, fixtures)
-	err := c.PutBatch(context.Background(), keyers...)
-	if err != nil {
-		t.Fatal(err)
-	}
-}
-
-// toKeyers tries to convert a provided object into Keyers, so that we can insert them in the database.
-func toKeyers(t *testing.T, in interface{}) []Keyer {
-	var keyers []Keyer
-	if k, ok := in.(Keyer); ok {
-		return []Keyer{k}
-	}
-	switch reflect.TypeOf(in).Kind() {
-	case reflect.Slice:
-		s := reflect.ValueOf(in)
-
-		for i := 0; i < s.Len(); i++ {
-			k, ok := s.Index(i).Interface().(Keyer)
-			if !ok {
-				// try converting as a pointer
-				k, ok = s.Index(i).Addr().Interface().(Keyer)
-			}
-			if !ok {
-				t.Fatalf("fixture %s must implement Keyer interface", reflect.TypeOf(s.Index(i)))
-			}
-
-			keyers = append(keyers, k)
-		}
-		return keyers
-	}
-	t.Fatalf("fixture %s must implement Keyer interface", reflect.TypeOf(in))
-	return nil
 }
 
 // getTestClient returns a test ddb.Client.

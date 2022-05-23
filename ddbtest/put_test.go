@@ -1,26 +1,33 @@
-package ddb
+package ddbtest
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/common-fate/ddb"
+	"github.com/common-fate/ddb/ddbmock"
+)
 
 type exampleRowPtr struct{}
 
 // DDBKeys implements the Keyer interface with a pointer receiver
-func (r *exampleRowPtr) DDBKeys() (Keys, error) {
-	return Keys{}, nil
+func (r *exampleRowPtr) DDBKeys() (ddb.Keys, error) {
+	return ddb.Keys{}, nil
 }
 
 type exampleRow struct{}
 
 // DDBKeys implements the Keyer interface
-func (r exampleRow) DDBKeys() (Keys, error) {
-	return Keys{}, nil
+func (r exampleRow) DDBKeys() (ddb.Keys, error) {
+	return ddb.Keys{}, nil
 }
 
-func TestToKeyers(t *testing.T) {
+func TestPutFixture(t *testing.T) {
 	type testcase struct {
 		name string
 		give interface{}
 	}
+
+	c := ddbmock.New(t)
 
 	testcases := []testcase{
 		{"slice", []exampleRow{{}, {}}},
@@ -29,7 +36,7 @@ func TestToKeyers(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			toKeyers(t, tc.give)
+			PutFixtures(t, c, tc.give)
 		})
 	}
 
