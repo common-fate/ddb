@@ -6,12 +6,12 @@ package ddb
 type Keys struct {
 	PK     string
 	SK     string
-	GSI1PK string
-	GSI1SK string
-	GSI2PK string
-	GSI2SK string
-	GSI3PK string
-	GSI3SK string
+	GSI1PK string `json:",omitempty"`
+	GSI1SK string `json:",omitempty"`
+	GSI2PK string `json:",omitempty"`
+	GSI2SK string `json:",omitempty"`
+	GSI3PK string `json:",omitempty"`
+	GSI3SK string `json:",omitempty"`
 }
 
 // Keyers give DynamoDB keys to be used when inserting an item.
