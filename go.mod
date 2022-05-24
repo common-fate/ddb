@@ -34,7 +34,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.16.4 // indirect
 	github.com/aws/smithy-go v1.11.2 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
-	github.com/r3labs/diff v1.1.0
 	github.com/r3labs/diff/v2 v2.15.1
 	github.com/stretchr/testify v1.7.1
 )
