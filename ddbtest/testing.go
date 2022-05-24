@@ -25,8 +25,14 @@ func RunQueryTests(t *testing.T, c *ddb.Client, testcases []QueryTestCase) {
 			if err != nil && tc.WantErr == nil {
 				t.Fatal(err)
 			}
-			assert.Equal(t, tc.WantErr, err)
-			assert.Equal(t, tc.Want, tc.Query)
+			if tc.WantErr != nil {
+				// just compare the errors, as we don't care
+				//about what the result would be if an error is returned.
+				assert.Equal(t, tc.WantErr, err)
+			} else {
+				// we don't expect an error here, so compare the results to what we expected.
+				assert.Equal(t, tc.Want, tc.Query)
+			}
 		})
 	}
 }
