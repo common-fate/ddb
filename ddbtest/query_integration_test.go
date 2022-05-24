@@ -1,4 +1,4 @@
-package ddb
+package ddbtest
 
 import (
 	"math/rand"
@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/common-fate/ddb"
 )
 
 var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
@@ -28,8 +29,8 @@ type Thing struct {
 	Color string
 }
 
-func (a Thing) DDBKeys() (Keys, error) {
-	return Keys{PK: a.Type, SK: a.ID}, nil
+func (a Thing) DDBKeys() (ddb.Keys, error) {
+	return ddb.Keys{PK: a.Type, SK: a.ID}, nil
 }
 
 type ListThingStructTag struct {
