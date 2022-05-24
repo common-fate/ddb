@@ -19,6 +19,8 @@ type Client struct {
 	PutErr error
 	// PutBatchErr causes PutBatch() to return an error if it is set
 	PutBatchErr error
+	// TransactWriteItemsErr causes TransactWriteItems() to return an error if it is set
+	TransactWriteItemsErr error
 }
 
 // mockResult is the mocked result when Query() is called.
@@ -111,4 +113,8 @@ func (m *Client) Put(ctx context.Context, item ddb.Keyer) error {
 
 func (m *Client) PutBatch(ctx context.Context, items ...ddb.Keyer) error {
 	return m.PutBatchErr
+}
+
+func (m *Client) TransactWriteItems(ctx context.Context, tx []ddb.TransactWriteItem) error {
+	return m.TransactWriteItemsErr
 }

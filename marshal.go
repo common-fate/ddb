@@ -1,36 +1,37 @@
 package ddb
 
 import (
+	"reflect"
+
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
-// Marshal is a lightweight wrapper over attributevalue.MarshalMap
-// which enforces the `json` tag key is used rather than `dynamodbav`.
-func Marshal(in interface{}) (map[string]types.AttributeValue, error) {
-	return attributevalue.MarshalMapWithOptions(in, encoderWithJSONTagKey)
-}
+// marshalItem turns an item into it's DynamoDB representation.
+func marshalItem(item Keyer) (map[string]types.AttributeValue, error) {
+	keys, err := item.DDBKeys()
+	if err != nil {
+		return nil, err
+	}
 
-// Unmarshal is a lightweight wrapper over attributevalue.UnmarshalMap
-// which enforces the `json` tag key is used rather than `dynamodbav`.
-func Unmarshal(m map[string]types.AttributeValue, out interface{}) error {
-	return attributevalue.UnmarshalMapWithOptions(m, &out, decoderWithJSONTagKey)
-}
+	// marshal the object itself
+	objAttrs, err := attributevalue.MarshalMap(item)
+	if err != nil {
+		return nil, err
+	}
 
-func encoderWithJSONTagKey(eo *attributevalue.EncoderOptions) {
-	eo.TagKey = "json"
-}
+	v := reflect.ValueOf(keys)
+	// add the keys to the object
+	for i := 0; i < v.NumField(); i++ {
+		k := v.Type().Field(i).Name
+		val := v.Field(i).String()
 
-func decoderWithJSONTagKey(do *attributevalue.DecoderOptions) {
-	do.TagKey = "json"
-}
+		// any fields which are empty strings are useless to write to DynamoDB.
+		// when iterating through the object we ignore these.
+		if val != "" {
+			objAttrs[k] = &types.AttributeValueMemberS{Value: val}
+		}
+	}
 
-// Marshaler can convert data into a format to be saved in DynamoDB.
-type Marshaler interface {
-	MarshalDDB() (map[string]types.AttributeValue, error)
-}
-
-// Unmarshaler can read data from DynamoDB.
-type Unmarshaler interface {
-	UnmarshalDDB(item map[string]types.AttributeValue) error
+	return objAttrs, nil
 }

@@ -14,7 +14,7 @@ import (
 type QueryTestCase struct {
 	Name    string
 	Query   ddb.QueryBuilder
-	Want    interface{}
+	Want    ddb.QueryBuilder
 	WantErr error
 }
 
@@ -26,10 +26,28 @@ func RunQueryTests(t *testing.T, c *ddb.Client, testcases []QueryTestCase) {
 			if err != nil && tc.WantErr == nil {
 				t.Fatal(err)
 			}
-			assert.Equal(t, tc.WantErr, err)
-			changelog, err := diff.Diff(tc.Want, tc.Query)
-			assert.NoError(t, err)
-			assert.Len(t, changelog, 0)
+			if tc.WantErr != nil {
+				// just compare the errors, as we don't care
+				//about what the result would be if an error is returned.
+				assert.Equal(t, tc.WantErr, err)
+			} else {
+
+				// we don't expect an error here, so compare the results to what we expected.
+				changelog, err := diff.Diff(tc.Want, tc.Query)
+				assert.NoError(t, err)
+				if len(changelog) != 0 {
+					// Go doesn't consistently order slices, so just calling assert.Equal
+					// causes test cases to fail when the results are out of order
+					// compared to what we want.
+					// using the changelog length here is a bit of a hack to prevent this,
+					// as the diff library ignores the order of slices.
+					//
+					// If we get here, calling assert.Equal() will definitely fail.
+					// This gives us a developer-friendly error message we can use
+					// to fix our tests faster.
+					assert.Equal(t, tc.Want, tc.Query)
+				}
+			}
 		})
 	}
 }
