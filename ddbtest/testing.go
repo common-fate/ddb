@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/common-fate/ddb"
-	"github.com/r3labs/diff/v2"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -14,7 +13,7 @@ import (
 type QueryTestCase struct {
 	Name    string
 	Query   ddb.QueryBuilder
-	Want    interface{}
+	Want    ddb.QueryBuilder
 	WantErr error
 }
 
@@ -27,9 +26,7 @@ func RunQueryTests(t *testing.T, c *ddb.Client, testcases []QueryTestCase) {
 				t.Fatal(err)
 			}
 			assert.Equal(t, tc.WantErr, err)
-			changelog, err := diff.Diff(tc.Want, tc.Query)
-			assert.NoError(t, err)
-			assert.Len(t, changelog, 0)
+			assert.Equal(t, tc.Want, tc.Query)
 		})
 	}
 }
