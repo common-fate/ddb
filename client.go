@@ -13,18 +13,24 @@ var _ Storage = &Client{}
 // It has methods which allow access patterns to be written
 // in a more ergonomic fashion than the native client.
 type Client struct {
-	table  string
-	client *dynamodb.Client
+	batchSize int
+	table     string
+	client    *dynamodb.Client
 }
 
 // New creates a new DynamoDB Client.
 func New(ctx context.Context, table string, opts ...func(*Client)) (*Client, error) {
 	c := &Client{
-		table: table,
+		table:     table,
+		batchSize: 25,
 	}
 
 	for _, o := range opts {
 		o(c)
+	}
+	// batch size must be greater than 0 and less than 25
+	if c.batchSize > 25 || c.batchSize < 1 {
+		return nil, ErrInvalidBatchSize
 	}
 
 	if c.client == nil {
@@ -42,5 +48,12 @@ func New(ctx context.Context, table string, opts ...func(*Client)) (*Client, err
 func WithDynamoDBClient(d *dynamodb.Client) func(*Client) {
 	return func(c *Client) {
 		c.client = d
+	}
+}
+
+// WithBatchSize allows a custom batchSize to be provided for putBatch operations.
+func WithBatchSize(batchSize int) func(*Client) {
+	return func(c *Client) {
+		c.batchSize = batchSize
 	}
 }
