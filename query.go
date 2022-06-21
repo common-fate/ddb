@@ -20,16 +20,26 @@ type QueryBuilder interface {
 	BuildQuery() (*dynamodb.QueryInput, error)
 }
 
-type PaginationInput struct {
-	PageSize  *int32
-	CurrToken string
-	NextToken *string
+type Pagination struct {
+	PageSize *int32
+	Current  string
+	Next     *string
+}
+
+type QueryOpts struct {
+	Page *Pagination
 }
 
 // QueryOutputUnmarshalers implement custom logic to
 // unmarshal the results of a DynamoDB QueryItems call.
 type QueryOutputUnmarshaler interface {
 	UnmarshalQueryOutput(out *dynamodb.QueryOutput) error
+}
+
+func Page(p *Pagination) func(*QueryOpts) {
+	return func(qo *QueryOpts) {
+		qo.Page = p
+	}
 }
 
 // Query DynamoDB using a given QueryBuilder. Under the hood, this uses the
@@ -47,14 +57,19 @@ type QueryOutputUnmarshaler interface {
 //
 // The examples in this package show how to write simple and complex access patterns
 // which use each of the three methods above.
-func (c *Client) Query(ctx context.Context, qb QueryBuilder, pag *PaginationInput) error {
+func (c *Client) Query(ctx context.Context, qb QueryBuilder, opts ...func(*QueryOpts)) error {
 	q, err := qb.BuildQuery()
 	if err != nil {
 		return err
 	}
 
-	if pag != nil {
-		curs, err := DecryptCursor(pag.CurrToken, c.paginationSecret)
+	qo := QueryOpts{}
+	for _, o := range opts {
+		o(&qo)
+	}
+
+	if qo.Page != nil {
+		curs, err := DecryptCursor(qo.Page.Current, c.paginationSecret)
 		if err != nil {
 			return err
 		}
@@ -63,7 +78,7 @@ func (c *Client) Query(ctx context.Context, qb QueryBuilder, pag *PaginationInpu
 			"SK": &types.AttributeValueMemberS{Value: curs.Sk},
 		}
 		q.ExclusiveStartKey = startKey
-		q.Limit = pag.PageSize
+		q.Limit = qo.Page.PageSize
 	}
 
 	// query builders don't necessarily know which table the client uses,
@@ -117,7 +132,7 @@ func (c *Client) Query(ctx context.Context, qb QueryBuilder, pag *PaginationInpu
 		if err != nil {
 			return err
 		}
-		pag.NextToken = &newToken
+		qo.Page.Next = &newToken
 	}
 
 	// Otherwise, default to the unmarshalling logic provided by the attributevalue package.

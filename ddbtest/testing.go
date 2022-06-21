@@ -16,8 +16,8 @@ type QueryTestCase struct {
 	Query          ddb.QueryBuilder
 	Want           ddb.QueryBuilder
 	WantErr        error
-	Pagination     *ddb.PaginationInput
-	WantPagination *ddb.PaginationInput
+	Pagination     *ddb.Pagination
+	WantPagination *ddb.Pagination
 }
 
 // RunQueryTests runs standardised integration tests to check the behaviour of a QueryBuilder.
@@ -25,7 +25,7 @@ func RunQueryTests(t *testing.T, c *ddb.Client, testcases []QueryTestCase) {
 	for _, tc := range testcases {
 		t.Run(tc.Name, func(t *testing.T) {
 
-			err := c.Query(context.Background(), tc.Query, tc.Pagination)
+			err := c.Query(context.Background(), tc.Query, ddb.Page(tc.Pagination))
 			if err != nil && tc.WantErr == nil {
 				t.Fatal(err)
 			}
