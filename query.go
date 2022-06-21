@@ -21,6 +21,7 @@ type QueryBuilder interface {
 }
 
 type PaginationInput struct {
+	PageSize  *int32
 	CurrToken string
 	NextToken *string
 }
@@ -62,6 +63,7 @@ func (c *Client) Query(ctx context.Context, qb QueryBuilder, pag *PaginationInpu
 			"SK": &types.AttributeValueMemberS{Value: curs.Sk},
 		}
 		q.ExclusiveStartKey = startKey
+		q.Limit = pag.PageSize
 	}
 
 	// query builders don't necessarily know which table the client uses,
