@@ -9,4 +9,5 @@ type Storage interface {
 	Put(ctx context.Context, item Keyer) error
 	PutBatch(ctx context.Context, items ...Keyer) error
 	TransactWriteItems(ctx context.Context, tx []TransactWriteItem) error
+	Delete(ctx context.Context, item Keyer) error
 }

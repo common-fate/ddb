@@ -15,6 +15,8 @@ type Client struct {
 	t       TestReporter
 	mu      *sync.Mutex
 	results map[reflect.Type]mockResult
+	// DeleteErr causes Delete() to return an error if it is set
+	DeleteErr error
 	// PutErr causes Put() to return an error if it is set
 	PutErr error
 	// PutBatchErr causes PutBatch() to return an error if it is set
@@ -117,4 +119,8 @@ func (m *Client) PutBatch(ctx context.Context, items ...ddb.Keyer) error {
 
 func (m *Client) TransactWriteItems(ctx context.Context, tx []ddb.TransactWriteItem) error {
 	return m.TransactWriteItemsErr
+}
+
+func (m *Client) Delete(ctx context.Context, item ddb.Keyer) error {
+	return m.DeleteErr
 }
