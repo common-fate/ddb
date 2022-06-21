@@ -65,7 +65,7 @@ func Example_customUnmarshalling() {
 
 	q := ListCarAndWheelsByColor{Color: "light-orange"}
 	c, _ := ddb.New(ctx, "example-table")
-	_ = c.Query(ctx, &q)
+	_ = c.Query(ctx, &q, nil)
 
 	// q.Result.Car and q.Result.Wheels are now populated with data as fetched from DynamoDB
 }

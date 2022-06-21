@@ -102,6 +102,15 @@ func TestQueryIntegration(t *testing.T) {
 			Query: &ListThingsCustomUnmarshal{Type: typ},
 			Want:  &ListThingsCustomUnmarshal{Type: typ, Result: apples},
 		},
+		{
+			Name:       "pagination",
+			Query:      &ListThingsCustomUnmarshal{Type: typ},
+			Want:       &ListThingsCustomUnmarshal{Type: typ, Result: apples},
+			Pagination: &ddb.PaginationInput{},
+			WantPagination: &ddb.PaginationInput{
+				CurrToken: "123",
+			},
+		},
 	}
 	RunQueryTests(t, c, testcases)
 }

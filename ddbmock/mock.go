@@ -49,7 +49,8 @@ func New(t TestReporter) *Client {
 //	var got getApple
 //	db.Query(ctx, &got)
 //	// got now contains {Result: Apple{Color: "red"}} as defined by MockQuery.
-func (m *Client) MockQuery(qb ddb.QueryBuilder) {
+// TODO; verify pagination working
+func (m *Client) MockQuery(qb ddb.QueryBuilder, pag *ddb.PaginationInput) {
 	t := reflect.TypeOf(qb)
 
 	// acquire a mutex lock in case the client is being used across multiple goroutines.
@@ -88,7 +89,7 @@ func (m *Client) MockQueryWithErr(qb ddb.QueryBuilder, err error) {
 }
 
 // Query returns mock query results based on the type of the 'qb' argument.
-func (m *Client) Query(ctx context.Context, qb ddb.QueryBuilder) error {
+func (m *Client) Query(ctx context.Context, qb ddb.QueryBuilder, pag *ddb.PaginationInput) error {
 	t := reflect.TypeOf(qb)
 	got, ok := m.results[t]
 	if !ok {

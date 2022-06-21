@@ -12,20 +12,27 @@ import (
 
 // QueryTestCase is a test case for running integration tests which call Query().
 type QueryTestCase struct {
-	Name    string
-	Query   ddb.QueryBuilder
-	Want    ddb.QueryBuilder
-	WantErr error
+	Name           string
+	Query          ddb.QueryBuilder
+	Want           ddb.QueryBuilder
+	WantErr        error
+	Pagination     *ddb.PaginationInput
+	WantPagination *ddb.PaginationInput
 }
 
 // RunQueryTests runs standardised integration tests to check the behaviour of a QueryBuilder.
 func RunQueryTests(t *testing.T, c *ddb.Client, testcases []QueryTestCase) {
 	for _, tc := range testcases {
 		t.Run(tc.Name, func(t *testing.T) {
-			err := c.Query(context.Background(), tc.Query)
+
+			err := c.Query(context.Background(), tc.Query, tc.Pagination)
 			if err != nil && tc.WantErr == nil {
 				t.Fatal(err)
 			}
+
+			// TODO: Add integration tests for pag too
+			assert.Equal(t, tc.Pagination, tc.WantPagination)
+
 			if tc.WantErr != nil {
 				// just compare the errors, as we don't care
 				//about what the result would be if an error is returned.

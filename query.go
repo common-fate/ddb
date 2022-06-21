@@ -2,11 +2,13 @@ package ddb
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"reflect"
 
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
 // QueryBuilders build query inputs for DynamoDB access patterns.
@@ -16,6 +18,11 @@ import (
 // implement integration tests for it against a live DynamoDB database.
 type QueryBuilder interface {
 	BuildQuery() (*dynamodb.QueryInput, error)
+}
+
+type PaginationInput struct {
+	CurrToken string
+	NextToken *string
 }
 
 // QueryOutputUnmarshalers implement custom logic to
@@ -39,10 +46,22 @@ type QueryOutputUnmarshaler interface {
 //
 // The examples in this package show how to write simple and complex access patterns
 // which use each of the three methods above.
-func (c *Client) Query(ctx context.Context, qb QueryBuilder) error {
+func (c *Client) Query(ctx context.Context, qb QueryBuilder, pag *PaginationInput) error {
 	q, err := qb.BuildQuery()
 	if err != nil {
 		return err
+	}
+
+	if pag != nil {
+		curs, err := DecryptCursor(pag.CurrToken, c.paginationSecret)
+		if err != nil {
+			return err
+		}
+		startKey := map[string]types.AttributeValue{
+			"PK": &types.AttributeValueMemberS{Value: curs.Pk},
+			"SK": &types.AttributeValueMemberS{Value: curs.Sk},
+		}
+		q.ExclusiveStartKey = startKey
 	}
 
 	// query builders don't necessarily know which table the client uses,
@@ -68,6 +87,35 @@ func (c *Client) Query(ctx context.Context, qb QueryBuilder) error {
 	}
 	if resultTag != nil {
 		out = resultTag.Interface()
+	}
+
+	// also calculate NextToken for pag
+	// if pag.NextToken == nil {
+	if got.LastEvaluatedKey != nil {
+
+		lek := map[string]string{}
+		err := attributevalue.UnmarshalMap(got.LastEvaluatedKey, &lek)
+		if err != nil {
+			return err
+		}
+
+		test, err := json.Marshal(lek)
+		if err != nil {
+			return err
+		}
+
+		fmt.Println(test)
+
+		// create new cursor
+		newCurs := Cursor{
+			// Pk: dynamodbattribute.UnmarshalMap(got.LastEvaluatedKey["PK"]),
+		}
+
+		newToken, err := newCurs.Encrypt(c.paginationSecret)
+		if err != nil {
+			return err
+		}
+		pag.NextToken = &newToken
 	}
 
 	// Otherwise, default to the unmarshalling logic provided by the attributevalue package.

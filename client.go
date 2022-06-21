@@ -7,15 +7,16 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 )
 
-var _ Storage = &Client{}
+// var _ Storage = &Client{}
 
 // Client is a thin wrapper over the native DynamoDB client.
 // It has methods which allow access patterns to be written
 // in a more ergonomic fashion than the native client.
 type Client struct {
-	batchSize int
-	table     string
-	client    *dynamodb.Client
+	batchSize        int
+	table            string
+	client           *dynamodb.Client
+	paginationSecret *PaginationSecret
 }
 
 // New creates a new DynamoDB Client.
@@ -40,6 +41,13 @@ func New(ctx context.Context, table string, opts ...func(*Client)) (*Client, err
 		}
 		c.client = dynamodb.NewFromConfig(cfg)
 	}
+
+	pagSecret, err := NewPaginationSecret()
+	if err != nil {
+		return nil, err
+	}
+
+	c.paginationSecret = pagSecret
 
 	return c, nil
 }
