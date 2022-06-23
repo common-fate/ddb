@@ -12,12 +12,11 @@ import (
 
 // QueryTestCase is a test case for running integration tests which call Query().
 type QueryTestCase struct {
-	Name           string
-	Query          ddb.QueryBuilder
-	Want           ddb.QueryBuilder
-	WantErr        error
-	Pagination     *ddb.Pagination
-	WantPagination *ddb.Pagination
+	Name      string
+	Query     ddb.QueryBuilder
+	QueryOpts []func(*ddb.QueryOpts)
+	Want      ddb.QueryBuilder
+	WantErr   error
 }
 
 // RunQueryTests runs standardised integration tests to check the behaviour of a QueryBuilder.
@@ -25,13 +24,10 @@ func RunQueryTests(t *testing.T, c *ddb.Client, testcases []QueryTestCase) {
 	for _, tc := range testcases {
 		t.Run(tc.Name, func(t *testing.T) {
 
-			err := c.Query(context.Background(), tc.Query, ddb.Page(tc.Pagination))
+			_, err := c.Query(context.Background(), tc.Query, tc.QueryOpts...)
 			if err != nil && tc.WantErr == nil {
 				t.Fatal(err)
 			}
-
-			// TODO: Add integration tests for pag too
-			assert.Equal(t, tc.Pagination, tc.WantPagination)
 
 			if tc.WantErr != nil {
 				// just compare the errors, as we don't care
@@ -61,12 +57,12 @@ func RunQueryTests(t *testing.T, c *ddb.Client, testcases []QueryTestCase) {
 
 // getTestClient returns a test ddb.Client.
 // if TESTING_DYNAMODB_TABLE is not set it skips the test.
-func getTestClient(t *testing.T) *ddb.Client {
+func getTestClient(t *testing.T, opts ...func(*ddb.Client)) *ddb.Client {
 	if os.Getenv("TESTING_DYNAMODB_TABLE") == "" {
 		t.Skip("TESTING_DYNAMODB_TABLE is not set")
 	}
 
-	c, err := ddb.New(context.Background(), os.Getenv("TESTING_DYNAMODB_TABLE"))
+	c, err := ddb.New(context.Background(), os.Getenv("TESTING_DYNAMODB_TABLE"), opts...)
 	if err != nil {
 		t.Fatal(err)
 	}

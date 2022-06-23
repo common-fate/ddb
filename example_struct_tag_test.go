@@ -31,7 +31,7 @@ func Example_structTag() {
 
 	lobc := ListOrangesByColor{Color: "light-orange"}
 	c, _ := ddb.New(ctx, "example-table")
-	_ = c.Query(ctx, &lobc, nil)
+	_, _ = c.Query(ctx, &lobc, nil)
 
 	// labc.Result is now populated with []Orange as fetched from DynamoDB
 }

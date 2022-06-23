@@ -2,13 +2,12 @@ package ddb
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"reflect"
 
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/pkg/errors"
 )
 
 // QueryBuilders build query inputs for DynamoDB access patterns.
@@ -20,14 +19,9 @@ type QueryBuilder interface {
 	BuildQuery() (*dynamodb.QueryInput, error)
 }
 
-type Pagination struct {
-	PageSize *int32
-	Current  string
-	Next     *string
-}
-
 type QueryOpts struct {
-	Page *Pagination
+	PageToken string
+	Limit     int32
 }
 
 // QueryOutputUnmarshalers implement custom logic to
@@ -36,10 +30,29 @@ type QueryOutputUnmarshaler interface {
 	UnmarshalQueryOutput(out *dynamodb.QueryOutput) error
 }
 
-func Page(p *Pagination) func(*QueryOpts) {
+// Page sets the pagination token to provide an offset for the query.
+// It is mapped to the 'ExclusiveStartKey' argument in the dynamodb.Query method.
+func Page(pageToken string) func(*QueryOpts) {
 	return func(qo *QueryOpts) {
-		qo.Page = p
+		qo.PageToken = pageToken
 	}
+}
+
+// Limit overrides the amount of items returned from the query.
+// It is mapped to the 'Limit' argument in the dynamodb.Query method.
+func Limit(limit int32) func(*QueryOpts) {
+	return func(qo *QueryOpts) {
+		qo.Limit = limit
+	}
+}
+
+type QueryResult struct {
+	// RawOutput is the DynamoDB API response. Usually you won't need this,
+	// as results are parsed onto the QueryBuilder argument.
+	RawOutput *dynamodb.QueryOutput
+
+	// NextPage is the next page token. If empty, there is no next page.
+	NextPage string
 }
 
 // Query DynamoDB using a given QueryBuilder. Under the hood, this uses the
@@ -57,10 +70,10 @@ func Page(p *Pagination) func(*QueryOpts) {
 //
 // The examples in this package show how to write simple and complex access patterns
 // which use each of the three methods above.
-func (c *Client) Query(ctx context.Context, qb QueryBuilder, opts ...func(*QueryOpts)) error {
+func (c *Client) Query(ctx context.Context, qb QueryBuilder, opts ...func(*QueryOpts)) (*QueryResult, error) {
 	q, err := qb.BuildQuery()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	qo := QueryOpts{}
@@ -68,17 +81,23 @@ func (c *Client) Query(ctx context.Context, qb QueryBuilder, opts ...func(*Query
 		o(&qo)
 	}
 
-	if qo.Page != nil {
-		curs, err := DecryptCursor(qo.Page.Current, c.paginationSecret)
+	// ensure that we have a tokenizer so that we don't nil panic
+	if c.tokenizer == nil {
+		return nil, errors.New("a page encoder must be set up to use pagination (call ddb.WithPageEncoder when setting up the client to fix)")
+	}
+
+	// set up query pagination if it's provided
+	if qo.PageToken != "" {
+		startKey, err := c.tokenizer.UnmarshalToken(qo.PageToken)
 		if err != nil {
-			return err
-		}
-		startKey := map[string]types.AttributeValue{
-			"PK": &types.AttributeValueMemberS{Value: curs.Pk},
-			"SK": &types.AttributeValueMemberS{Value: curs.Sk},
+			return nil, errors.Wrap(err, "unmarshalling page start key")
 		}
 		q.ExclusiveStartKey = startKey
-		q.Limit = qo.Page.PageSize
+	}
+
+	// set the page size if it's provided
+	if qo.Limit > 0 {
+		q.Limit = &qo.Limit
 	}
 
 	// query builders don't necessarily know which table the client uses,
@@ -87,12 +106,29 @@ func (c *Client) Query(ctx context.Context, qb QueryBuilder, opts ...func(*Query
 
 	got, err := c.client.Query(ctx, q)
 	if err != nil {
-		return err
+		return nil, err
+	}
+
+	result := &QueryResult{
+		RawOutput: got,
+	}
+
+	// marshal the LastEvaluatedKey into a pagination token if pagination is enabled.
+	if got.LastEvaluatedKey != nil {
+		s, err := c.tokenizer.MarshalToken(got.LastEvaluatedKey)
+		if err != nil {
+			return nil, errors.Wrap(err, "marshalling LastEvaluatedKey to page token")
+		}
+		result.NextPage = s
 	}
 
 	// call the custom unmarshalling logic if the QueryBuilder implements it.
 	if rp, ok := qb.(QueryOutputUnmarshaler); ok {
-		return rp.UnmarshalQueryOutput(got)
+		err = rp.UnmarshalQueryOutput(got)
+		if err != nil {
+			return nil, err
+		}
+		return result, nil
 	}
 
 	var out interface{} = qb
@@ -100,43 +136,18 @@ func (c *Client) Query(ctx context.Context, qb QueryBuilder, opts ...func(*Query
 	// check if the QueryBuilder contains a 'ddb:"result"' struct tag
 	resultTag, err := findResultsTag(qb)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if resultTag != nil {
 		out = resultTag.Interface()
 	}
 
-	// also calculate NextToken for pag
-	// if pag.NextToken == nil {
-	if got.LastEvaluatedKey != nil {
-
-		lek := map[string]string{}
-		err := attributevalue.UnmarshalMap(got.LastEvaluatedKey, &lek)
-		if err != nil {
-			return err
-		}
-
-		test, err := json.Marshal(lek)
-		if err != nil {
-			return err
-		}
-
-		fmt.Println(test)
-
-		// create new cursor
-		newCurs := Cursor{
-			// Pk: dynamodbattribute.UnmarshalMap(got.LastEvaluatedKey["PK"]),
-		}
-
-		newToken, err := newCurs.Encrypt(c.paginationSecret)
-		if err != nil {
-			return err
-		}
-		qo.Page.Next = &newToken
-	}
-
 	// Otherwise, default to the unmarshalling logic provided by the attributevalue package.
-	return attributevalue.UnmarshalListOfMaps(got.Items, out)
+	err = attributevalue.UnmarshalListOfMaps(got.Items, out)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 // findResultsTag returns the first struct field with a `ddb:"result"` tag.
