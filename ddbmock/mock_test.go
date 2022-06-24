@@ -52,7 +52,7 @@ func TestMockQuery(t *testing.T) {
 			}
 
 			var q testQuery
-			err := m.Query(context.Background(), &q)
+			_, err := m.Query(context.Background(), &q)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -90,7 +90,7 @@ func TestMockQueryFailure(t *testing.T) {
 			}
 
 			var q testQuery
-			_ = m.Query(context.Background(), &q)
+			_, _ = m.Query(context.Background(), &q)
 			assert.Equal(t, tc.want, tt.Logs)
 		})
 	}
@@ -126,7 +126,7 @@ func TestMockQueryWithErr(t *testing.T) {
 			}
 
 			var q testQuery
-			err := m.Query(context.Background(), &q)
+			_, err := m.Query(context.Background(), &q)
 			assert.Equal(t, tc.mockErr, err)
 			assert.Equal(t, tc.want, q.Result)
 		})

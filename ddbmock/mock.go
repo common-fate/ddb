@@ -51,6 +51,7 @@ func New(t TestReporter) *Client {
 //	var got getApple
 //	db.Query(ctx, &got)
 //	// got now contains {Result: Apple{Color: "red"}} as defined by MockQuery.
+// TODO; verify pagination working
 func (m *Client) MockQuery(qb ddb.QueryBuilder) {
 	t := reflect.TypeOf(qb)
 
@@ -90,23 +91,24 @@ func (m *Client) MockQueryWithErr(qb ddb.QueryBuilder, err error) {
 }
 
 // Query returns mock query results based on the type of the 'qb' argument.
-func (m *Client) Query(ctx context.Context, qb ddb.QueryBuilder) error {
+func (m *Client) Query(ctx context.Context, qb ddb.QueryBuilder, opts ...func(*ddb.QueryOpts)) (*ddb.QueryResult, error) {
+	res := &ddb.QueryResult{}
 	t := reflect.TypeOf(qb)
 	got, ok := m.results[t]
 	if !ok {
 		m.t.Fatalf("no mock found for %s - call RegisterQuery(&%s{}) to set a mock response", t, reflect.TypeOf(qb).Elem().Name())
-		return nil
+		return res, nil
 	}
 
 	// If we got an error, return it and don't set the results of the query.
 	if got.err != nil {
-		return got.err
+		return nil, got.err
 	}
 
 	// set the value of the QueryBuilder to our stored mock result.
 	reflect.ValueOf(qb).Elem().Set(reflect.ValueOf(got.value).Elem())
 
-	return nil
+	return res, nil
 }
 
 func (m *Client) Put(ctx context.Context, item ddb.Keyer) error {

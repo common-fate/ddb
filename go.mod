@@ -9,11 +9,12 @@ require (
 )
 
 require (
+	github.com/aws/aws-sdk-go v1.44.38 // indirect
 	github.com/davecgh/go-spew v1.1.0 // indirect
 	github.com/golang/protobuf v1.3.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/vmihailenco/msgpack v4.0.4+incompatible // indirect
-	golang.org/x/net v0.0.0-20210405180319-a5a99cb37ef4 // indirect
+	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	google.golang.org/appengine v1.6.6 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c // indirect
@@ -34,6 +35,8 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.16.4 // indirect
 	github.com/aws/smithy-go v1.11.2 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
+	github.com/joho/godotenv v1.4.0 // indirect
+	github.com/pkg/errors v0.9.1
 	github.com/r3labs/diff/v2 v2.15.1
 	github.com/stretchr/testify v1.7.1
 )

@@ -26,7 +26,7 @@ func Example_simple() {
 
 	var la ListApples
 	c, _ := ddb.New(ctx, "example-table")
-	_ = c.Query(ctx, &la)
+	_, _ = c.Query(ctx, &la, nil)
 
 	// la is now populated with []Apple as fetched from DynamoDB
 }

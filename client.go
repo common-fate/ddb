@@ -5,7 +5,15 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
+
+// Tokenizer converts DynamoDB page cursor items to and from
+// opaque strings.
+type Tokenizer interface {
+	MarshalToken(item map[string]types.AttributeValue) (string, error)
+	UnmarshalToken(s string) (map[string]types.AttributeValue, error)
+}
 
 var _ Storage = &Client{}
 
@@ -16,6 +24,7 @@ type Client struct {
 	batchSize int
 	table     string
 	client    *dynamodb.Client
+	tokenizer Tokenizer
 }
 
 // New creates a new DynamoDB Client.
@@ -23,6 +32,9 @@ func New(ctx context.Context, table string, opts ...func(*Client)) (*Client, err
 	c := &Client{
 		table:     table,
 		batchSize: 25,
+		// default to the JSONTokenizer.
+		// this can be overridden by providing ddb.WithPageTokenizer().
+		tokenizer: &JSONTokenizer{},
 	}
 
 	for _, o := range opts {
@@ -55,5 +67,13 @@ func WithDynamoDBClient(d *dynamodb.Client) func(*Client) {
 func WithBatchSize(batchSize int) func(*Client) {
 	return func(c *Client) {
 		c.batchSize = batchSize
+	}
+}
+
+// WithPageTokenizer allows a tokenizer to be provided for turning
+// LastEvaluatedKey items into strings.
+func WithPageTokenizer(e Tokenizer) func(*Client) {
+	return func(c *Client) {
+		c.tokenizer = e
 	}
 }
