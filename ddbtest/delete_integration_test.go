@@ -51,7 +51,7 @@ func TestDeleteIntegration(t *testing.T) {
 
 	// verify the fixture is in the table
 	q := &GetThing{Type: a.Type, ID: a.ID}
-	err := c.Query(ctx, q)
+	_, err := c.Query(ctx, q)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -63,6 +63,6 @@ func TestDeleteIntegration(t *testing.T) {
 
 	// verify the fixture has been deleted
 	q = &GetThing{Type: a.Type, ID: a.ID}
-	err = c.Query(ctx, q)
+	_, err = c.Query(ctx, q)
 	assert.Equal(t, ddb.ErrNoItems, err)
 }
