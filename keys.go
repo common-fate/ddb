@@ -12,6 +12,8 @@ type Keys struct {
 	GSI2SK string `json:",omitempty"`
 	GSI3PK string `json:",omitempty"`
 	GSI3SK string `json:",omitempty"`
+	GSI4PK string `json:",omitempty"`
+	GSI4SK string `json:",omitempty"`
 }
 
 // Keyers give DynamoDB keys to be used when inserting an item.
