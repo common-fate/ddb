@@ -27,6 +27,7 @@ type Client struct {
 
 // mockResult is the mocked result when Query() is called.
 type mockResult struct {
+	res   *ddb.QueryResult
 	value interface{}
 	err   error
 }
@@ -90,14 +91,30 @@ func (m *Client) MockQueryWithErr(qb ddb.QueryBuilder, err error) {
 	}
 }
 
+// MockQueryWithErrWithResult mocks a DynamoDB query.
+// It works the same as MockQueryWithErr, but allows a QueryResult to be set.
+// The QueryResult argument can be nil, in which case a nil QueryResult is returned.
+func (m *Client) MockQueryWithErrWithResult(qb ddb.QueryBuilder, res *ddb.QueryResult, err error) {
+	t := reflect.TypeOf(qb)
+
+	// acquire a mutex lock in case the client is being used across multiple goroutines.
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	m.results[t] = mockResult{
+		value: qb,
+		err:   err,
+		res:   res,
+	}
+}
+
 // Query returns mock query results based on the type of the 'qb' argument.
 func (m *Client) Query(ctx context.Context, qb ddb.QueryBuilder, opts ...func(*ddb.QueryOpts)) (*ddb.QueryResult, error) {
-	res := &ddb.QueryResult{}
 	t := reflect.TypeOf(qb)
 	got, ok := m.results[t]
 	if !ok {
 		m.t.Fatalf("no mock found for %s - call RegisterQuery(&%s{}) to set a mock response", t, reflect.TypeOf(qb).Elem().Name())
-		return res, nil
+		return nil, nil
 	}
 
 	// If we got an error, return it and don't set the results of the query.
@@ -108,7 +125,7 @@ func (m *Client) Query(ctx context.Context, qb ddb.QueryBuilder, opts ...func(*d
 	// set the value of the QueryBuilder to our stored mock result.
 	reflect.ValueOf(qb).Elem().Set(reflect.ValueOf(got.value).Elem())
 
-	return res, nil
+	return got.res, nil
 }
 
 func (m *Client) Put(ctx context.Context, item ddb.Keyer) error {
