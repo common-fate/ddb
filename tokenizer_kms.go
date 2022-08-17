@@ -3,7 +3,6 @@ package ddb
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/kms"
@@ -32,14 +31,12 @@ func (e *KMSTokenizer) MarshalToken(item map[string]types.AttributeValue) (strin
 		Plaintext: b,
 	}
 
-	result, err := EncryptText(context.TODO(), client, input)
+	result, err := e.client.Encrypt(context.TODO(), input)
 	if err != nil {
-		fmt.Println("Got error encrypting data:")
-		fmt.Println(err)
-		return
+		return "", err
 	}
 
-	return string(b), nil
+	return string(result.CiphertextBlob), nil
 }
 
 func (e *KMSTokenizer) UnmarshalToken(s string) (map[string]types.AttributeValue, error) {
@@ -47,8 +44,18 @@ func (e *KMSTokenizer) UnmarshalToken(s string) (map[string]types.AttributeValue
 		return nil, nil
 	}
 
+	input := &kms.DecryptInput{
+		KeyId:          aws.String(e.keyID),
+		CiphertextBlob: []byte(s),
+	}
+
+	result, err := e.client.Decrypt(context.TODO(), input)
+	if err != nil {
+		return map[string]types.AttributeValue{}, err
+	}
+
 	var tmp map[string]*types.AttributeValueMemberS
-	err := json.Unmarshal([]byte(s), &tmp)
+	err = json.Unmarshal([]byte(result.Plaintext), &tmp)
 	if err != nil {
 		return nil, err
 	}
@@ -64,25 +71,17 @@ func (e *KMSTokenizer) UnmarshalToken(s string) (map[string]types.AttributeValue
 	return out, nil
 }
 
-// EncryptText encrypts some text using an AWS Key Management Service (AWS KMS) customer master key (CMK).
-// Inputs:
-//     c is the context of the method call, which includes the AWS Region.
-//     api is the interface that defines the method call.
-//     input defines the input arguments to the service call.
-// Output:
-//     If success, an EncryptOutput object containing the result of the service call and nil.
-//     Otherwise, nil and an error from the call to Encrypt.
-func EncryptText(c context.Context, api KMSEncryptAPI, input *kms.EncryptInput) (*kms.EncryptOutput, error) {
-	return api.Encrypt(c, input)
-}
+func NewKMSTokenizer(ctx context.Context, key string) (*KMSTokenizer, error) {
+	var opts []func(*config.LoadOptions) error
 
-func NewKMSTokenizer(ctx context.Context) (*KMSTokenizer, error) {
-	cfg, err := config.LoadDefaultConfig(ctx)
+	opts = append(opts, config.WithRegion("ap-southeast-2"))
+
+	cfg, err := config.LoadDefaultConfig(ctx, opts...)
 	if err != nil {
 		return nil, err
 	}
 
 	client := kms.NewFromConfig(cfg)
 
-	return &KMSTokenizer{"", client}, nil
+	return &KMSTokenizer{key, client}, nil
 }
