@@ -1,6 +1,7 @@
 package ddb
 
 import (
+	"context"
 	"encoding/json"
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
@@ -8,7 +9,7 @@ import (
 
 type JSONTokenizer struct{}
 
-func (e *JSONTokenizer) MarshalToken(item map[string]types.AttributeValue) (string, error) {
+func (e *JSONTokenizer) MarshalToken(ctx context.Context, item map[string]types.AttributeValue) (string, error) {
 	if item == nil {
 		return "", nil
 	}
@@ -20,7 +21,7 @@ func (e *JSONTokenizer) MarshalToken(item map[string]types.AttributeValue) (stri
 	return string(b), nil
 }
 
-func (e *JSONTokenizer) UnmarshalToken(s string) (map[string]types.AttributeValue, error) {
+func (e *JSONTokenizer) UnmarshalToken(ctx context.Context, s string) (map[string]types.AttributeValue, error) {
 	if s == "" {
 		return nil, nil
 	}

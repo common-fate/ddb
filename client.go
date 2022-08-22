@@ -11,8 +11,8 @@ import (
 // Tokenizer converts DynamoDB page cursor items to and from
 // opaque strings.
 type Tokenizer interface {
-	MarshalToken(item map[string]types.AttributeValue) (string, error)
-	UnmarshalToken(s string) (map[string]types.AttributeValue, error)
+	MarshalToken(ctx context.Context, item map[string]types.AttributeValue) (string, error)
+	UnmarshalToken(ctx context.Context, s string) (map[string]types.AttributeValue, error)
 }
 
 var _ Storage = &Client{}

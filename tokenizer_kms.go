@@ -16,7 +16,7 @@ type KMSTokenizer struct {
 	client *kms.Client
 }
 
-func (e *KMSTokenizer) MarshalToken(item map[string]types.AttributeValue) (string, error) {
+func (e *KMSTokenizer) MarshalToken(ctx context.Context, item map[string]types.AttributeValue) (string, error) {
 	if item == nil {
 		return "", nil
 	}
@@ -39,7 +39,7 @@ func (e *KMSTokenizer) MarshalToken(item map[string]types.AttributeValue) (strin
 	return string(result.CiphertextBlob), nil
 }
 
-func (e *KMSTokenizer) UnmarshalToken(s string) (map[string]types.AttributeValue, error) {
+func (e *KMSTokenizer) UnmarshalToken(ctx context.Context, s string) (map[string]types.AttributeValue, error) {
 	if s == "" {
 		return nil, nil
 	}
@@ -72,11 +72,8 @@ func (e *KMSTokenizer) UnmarshalToken(s string) (map[string]types.AttributeValue
 }
 
 func NewKMSTokenizer(ctx context.Context, key string) (*KMSTokenizer, error) {
-	var opts []func(*config.LoadOptions) error
 
-	opts = append(opts, config.WithRegion("ap-southeast-2"))
-
-	cfg, err := config.LoadDefaultConfig(ctx, opts...)
+	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
 		return nil, err
 	}
