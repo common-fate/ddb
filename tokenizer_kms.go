@@ -31,7 +31,7 @@ func (e *KMSTokenizer) MarshalToken(ctx context.Context, item map[string]types.A
 		Plaintext: b,
 	}
 
-	result, err := e.client.Encrypt(context.TODO(), input)
+	result, err := e.client.Encrypt(ctx, input)
 	if err != nil {
 		return "", err
 	}
@@ -49,7 +49,7 @@ func (e *KMSTokenizer) UnmarshalToken(ctx context.Context, s string) (map[string
 		CiphertextBlob: []byte(s),
 	}
 
-	result, err := e.client.Decrypt(context.TODO(), input)
+	result, err := e.client.Decrypt(ctx, input)
 	if err != nil {
 		return map[string]types.AttributeValue{}, err
 	}
