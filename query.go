@@ -88,7 +88,7 @@ func (c *Client) Query(ctx context.Context, qb QueryBuilder, opts ...func(*Query
 
 	// set up query pagination if it's provided
 	if qo.PageToken != "" {
-		startKey, err := c.tokenizer.UnmarshalToken(qo.PageToken)
+		startKey, err := c.tokenizer.UnmarshalToken(ctx, qo.PageToken)
 		if err != nil {
 			return nil, errors.Wrap(err, "unmarshalling page start key")
 		}
@@ -115,7 +115,7 @@ func (c *Client) Query(ctx context.Context, qb QueryBuilder, opts ...func(*Query
 
 	// marshal the LastEvaluatedKey into a pagination token if pagination is enabled.
 	if got.LastEvaluatedKey != nil {
-		s, err := c.tokenizer.MarshalToken(got.LastEvaluatedKey)
+		s, err := c.tokenizer.MarshalToken(ctx, got.LastEvaluatedKey)
 		if err != nil {
 			return nil, errors.Wrap(err, "marshalling LastEvaluatedKey to page token")
 		}

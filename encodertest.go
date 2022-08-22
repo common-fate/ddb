@@ -1,6 +1,7 @@
 package ddb
 
 import (
+	"context"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
@@ -30,11 +31,11 @@ var encoderTestCases = []encoderTestCase{
 func runEncoderTests(t *testing.T, e Tokenizer, testcases []encoderTestCase) {
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			s, err := e.MarshalToken(tc.give)
+			s, err := e.MarshalToken(context.Background(), tc.give)
 			if err != nil {
 				t.Fatal(err)
 			}
-			got, err := e.UnmarshalToken(s)
+			got, err := e.UnmarshalToken(context.Background(), s)
 			if err != nil {
 				t.Fatal(err)
 			}
