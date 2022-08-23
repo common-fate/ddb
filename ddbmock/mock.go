@@ -21,6 +21,8 @@ type Client struct {
 	PutErr error
 	// PutBatchErr causes PutBatch() to return an error if it is set
 	PutBatchErr error
+	// DeleteBatchErr causes DeleteBatch() to return an error if it is set
+	DeleteBatchErr error
 	// TransactWriteItemsErr causes TransactWriteItems() to return an error if it is set
 	TransactWriteItemsErr error
 }
@@ -52,6 +54,7 @@ func New(t TestReporter) *Client {
 //	var got getApple
 //	db.Query(ctx, &got)
 //	// got now contains {Result: Apple{Color: "red"}} as defined by MockQuery.
+//
 // TODO; verify pagination working
 func (m *Client) MockQuery(qb ddb.QueryBuilder) {
 	t := reflect.TypeOf(qb)
@@ -142,4 +145,8 @@ func (m *Client) TransactWriteItems(ctx context.Context, tx []ddb.TransactWriteI
 
 func (m *Client) Delete(ctx context.Context, item ddb.Keyer) error {
 	return m.DeleteErr
+}
+
+func (m *Client) DeleteBatch(ctx context.Context, items ...ddb.Keyer) error {
+	return m.DeleteBatchErr
 }
