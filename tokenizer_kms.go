@@ -2,6 +2,7 @@ package ddb
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -35,18 +36,21 @@ func (e *KMSTokenizer) MarshalToken(ctx context.Context, item map[string]types.A
 	if err != nil {
 		return "", err
 	}
-
-	return string(result.CiphertextBlob), nil
+	b64EncodedToken := base64.StdEncoding.EncodeToString(result.CiphertextBlob)
+	return b64EncodedToken, nil
 }
 
 func (e *KMSTokenizer) UnmarshalToken(ctx context.Context, s string) (map[string]types.AttributeValue, error) {
 	if s == "" {
 		return nil, nil
 	}
-
+	b64DecodedToken, err := base64.StdEncoding.DecodeString(s)
+	if err != nil {
+		return nil, err
+	}
 	input := &kms.DecryptInput{
 		KeyId:          aws.String(e.keyID),
-		CiphertextBlob: []byte(s),
+		CiphertextBlob: b64DecodedToken,
 	}
 
 	result, err := e.client.Decrypt(ctx, input)
