@@ -66,3 +66,33 @@ func TestDeleteIntegration(t *testing.T) {
 	_, err = c.Query(ctx, q)
 	assert.Equal(t, ddb.ErrNoItems, err)
 }
+
+func TestDeleteBatchIntegration(t *testing.T) {
+	c := getTestClient(t)
+	ctx := context.Background()
+
+	// insert fixture data
+	a := Thing{
+		Type:  randomString(20),
+		ID:    randomString(20),
+		Color: "red",
+	}
+	PutFixtures(t, c, a)
+
+	// verify the fixture is in the table
+	q := &GetThing{Type: a.Type, ID: a.ID}
+	_, err := c.Query(ctx, q)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = c.DeleteBatch(ctx, a)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// verify the fixture has been deleted
+	q = &GetThing{Type: a.Type, ID: a.ID}
+	_, err = c.Query(ctx, q)
+	assert.Equal(t, ddb.ErrNoItems, err)
+}
