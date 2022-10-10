@@ -54,8 +54,6 @@ func New(t TestReporter) *Client {
 //	var got getApple
 //	db.Query(ctx, &got)
 //	// got now contains {Result: Apple{Color: "red"}} as defined by MockQuery.
-//
-// TODO; verify pagination working
 func (m *Client) MockQuery(qb ddb.QueryBuilder) {
 	t := reflect.TypeOf(qb)
 
@@ -65,6 +63,7 @@ func (m *Client) MockQuery(qb ddb.QueryBuilder) {
 
 	m.results[t] = mockResult{
 		value: qb,
+		res:   &ddb.QueryResult{},
 	}
 }
 
@@ -91,6 +90,7 @@ func (m *Client) MockQueryWithErr(qb ddb.QueryBuilder, err error) {
 	m.results[t] = mockResult{
 		value: qb,
 		err:   err,
+		res:   &ddb.QueryResult{},
 	}
 }
 
