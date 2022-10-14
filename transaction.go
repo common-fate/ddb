@@ -11,8 +11,12 @@ func (c *Client) NewTransaction() Transaction {
 	}
 }
 
+// DBTransaction writes pending items to slices in memory.
+// It is goroutine-safe.
 type DBTransaction struct {
-	client      Storage
+	client Storage
+	// mu is a mutex to prevent concurrent writes to the
+	// putItems and deleteItems slices.
 	mu          sync.Mutex
 	putItems    []Keyer
 	deleteItems []Keyer
