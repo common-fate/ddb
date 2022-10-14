@@ -12,6 +12,7 @@ type Storage interface {
 	NewTransaction() Transaction
 	Delete(ctx context.Context, item Keyer) error
 	DeleteBatch(ctx context.Context, items ...Keyer) error
+	Get(ctx context.Context, key GetKey, item interface{}) (*GetItemResult, error)
 }
 
 // Transactions allow atomic write operations to be made to a DynamoDB table.
