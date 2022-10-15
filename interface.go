@@ -12,7 +12,13 @@ type Storage interface {
 	NewTransaction() Transaction
 	Delete(ctx context.Context, item Keyer) error
 	DeleteBatch(ctx context.Context, items ...Keyer) error
-	Get(ctx context.Context, key GetKey, item interface{}) (*GetItemResult, error)
+	// Get performs a GetItem call to fetch a single item from DynamoDB.
+	// The results are written to the 'item' argument. This argument
+	// must be passed by reference to the method.
+	//
+	// 	var item MyItem
+	//	db.Get(ctx, ddb.GetKey{PK: ..., SK: ...}, &item)
+	Get(ctx context.Context, key GetKey, item Keyer) (*GetItemResult, error)
 }
 
 // Transactions allow atomic write operations to be made to a DynamoDB table.

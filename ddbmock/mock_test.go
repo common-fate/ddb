@@ -29,6 +29,15 @@ type thing struct {
 	ID string
 }
 
+func (t thing) DDBKeys() (ddb.Keys, error) {
+	k := ddb.Keys{
+		PK: "PK",
+		SK: "SK",
+	}
+
+	return k, nil
+}
+
 func TestMockQuery(t *testing.T) {
 	type testcase struct {
 		name string

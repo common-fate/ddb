@@ -24,7 +24,7 @@ type GetItemResult struct {
 
 // Get calls GetItem to get an item in DynamoDB.
 // Get defaults to using consistent reads.
-func (c *Client) Get(ctx context.Context, key GetKey, item interface{}) (*GetItemResult, error) {
+func (c *Client) Get(ctx context.Context, key GetKey, item Keyer) (*GetItemResult, error) {
 	out, err := c.client.GetItem(ctx, &dynamodb.GetItemInput{
 		Key: map[string]types.AttributeValue{
 			"PK": &types.AttributeValueMemberS{Value: key.PK},
