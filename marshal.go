@@ -33,5 +33,10 @@ func marshalItem(item Keyer) (map[string]types.AttributeValue, error) {
 		}
 	}
 
+	// if the object implements EntityTyper, add a 'ddb:type' field with its type.
+	if et, ok := item.(EntityTyper); ok {
+		objAttrs["ddb:type"] = &types.AttributeValueMemberS{Value: et.EntityType()}
+	}
+
 	return objAttrs, nil
 }
