@@ -18,7 +18,7 @@ type Storage interface {
 	//
 	// 	var item MyItem
 	//	db.Get(ctx, ddb.GetKey{PK: ..., SK: ...}, &item)
-	Get(ctx context.Context, key GetKey, item Keyer) (*GetItemResult, error)
+	Get(ctx context.Context, key GetKey, item Keyer, opts ...func(*GetOpts)) (*GetItemResult, error)
 }
 
 // Transactions allow atomic write operations to be made to a DynamoDB table.
