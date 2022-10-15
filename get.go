@@ -57,6 +57,11 @@ func (c *Client) Get(ctx context.Context, key GetKey, item Keyer, opts ...func(*
 	if err != nil {
 		return res, err
 	}
+
+	if out.Item == nil {
+		return res, ErrNoItems
+	}
+
 	err = attributevalue.UnmarshalMap(out.Item, item)
 	return res, err
 }
