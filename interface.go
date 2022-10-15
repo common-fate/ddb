@@ -26,6 +26,8 @@ type Storage interface {
 	// Client returns the underlying DynamoDB client. It's useful for cases
 	// where you need more control over queries or writes than the ddb library provides.
 	Client() *dynamodb.Client
+	// Table returns the name of the DynamoDB table that the client is configured to use.
+	Table() string
 }
 
 // Transactions allow atomic write operations to be made to a DynamoDB table.

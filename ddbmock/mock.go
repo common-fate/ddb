@@ -215,3 +215,7 @@ func (m *Client) NewTransaction() ddb.Transaction {
 func (m *Client) Client() *dynamodb.Client {
 	return nil
 }
+
+func (m *Client) Table() string {
+	return ""
+}
