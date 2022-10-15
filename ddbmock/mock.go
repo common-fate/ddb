@@ -166,7 +166,7 @@ func (m *Client) Query(ctx context.Context, qb ddb.QueryBuilder, opts ...func(*d
 }
 
 // Get returns mock query results based registered mock values.
-func (m *Client) Get(ctx context.Context, key ddb.GetKey, item ddb.Keyer) (*ddb.GetItemResult, error) {
+func (m *Client) Get(ctx context.Context, key ddb.GetKey, item ddb.Keyer, opts ...func(*ddb.GetOpts)) (*ddb.GetItemResult, error) {
 	got, ok := m.getResults[key]
 	if !ok {
 		m.t.Fatalf("no mock found for %+v - call MockGet() to set a mock response", key)
