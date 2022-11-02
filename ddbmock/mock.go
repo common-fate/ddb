@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"sync"
 
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/common-fate/ddb"
 )
 
@@ -206,4 +207,15 @@ func (m *Client) DeleteBatch(ctx context.Context, items ...ddb.Keyer) error {
 
 func (m *Client) NewTransaction() ddb.Transaction {
 	return &MockTransaction{ExecuteError: m.TransactionExecuteErr}
+}
+
+// Client returns nil. If you're writing tests which use
+// DynamoDB implementation details you should probably be
+// using integration tests!
+func (m *Client) Client() *dynamodb.Client {
+	return nil
+}
+
+func (m *Client) Table() string {
+	return ""
 }

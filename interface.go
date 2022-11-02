@@ -1,6 +1,10 @@
 package ddb
 
-import "context"
+import (
+	"context"
+
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+)
 
 // Storage defines a common interface to make testing ddb easier.
 // Both the real and mock clients meet this interface.
@@ -19,6 +23,11 @@ type Storage interface {
 	// 	var item MyItem
 	//	db.Get(ctx, ddb.GetKey{PK: ..., SK: ...}, &item)
 	Get(ctx context.Context, key GetKey, item Keyer, opts ...func(*GetOpts)) (*GetItemResult, error)
+	// Client returns the underlying DynamoDB client. It's useful for cases
+	// where you need more control over queries or writes than the ddb library provides.
+	Client() *dynamodb.Client
+	// Table returns the name of the DynamoDB table that the client is configured to use.
+	Table() string
 }
 
 // Transactions allow atomic write operations to be made to a DynamoDB table.

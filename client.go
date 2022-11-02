@@ -77,3 +77,11 @@ func WithPageTokenizer(e Tokenizer) func(*Client) {
 		c.tokenizer = e
 	}
 }
+
+func (c *Client) Client() *dynamodb.Client {
+	return c.client
+}
+
+func (c *Client) Table() string {
+	return c.table
+}
