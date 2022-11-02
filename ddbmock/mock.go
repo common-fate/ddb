@@ -12,9 +12,10 @@ var _ ddb.Storage = &Client{}
 
 // Client is a mock client which can be used to test ddb queries.
 type Client struct {
-	t       TestReporter
-	mu      *sync.Mutex
-	results map[reflect.Type]mockResult
+	t          TestReporter
+	mu         *sync.Mutex
+	results    map[reflect.Type]mockResult
+	getResults map[ddb.GetKey]mockGetResult
 	// DeleteErr causes Delete() to return an error if it is set
 	DeleteErr error
 	// PutErr causes Put() to return an error if it is set
@@ -30,6 +31,13 @@ type Client struct {
 	TransactionExecuteErr error
 }
 
+// mockGetResult is the mocked result when Get() is called.
+type mockGetResult struct {
+	res   *ddb.GetItemResult
+	value interface{}
+	err   error
+}
+
 // mockResult is the mocked result when Query() is called.
 type mockResult struct {
 	res   *ddb.QueryResult
@@ -40,9 +48,32 @@ type mockResult struct {
 // New creates a new mock client which satisfies the ddb.Storage interface.
 func New(t TestReporter) *Client {
 	return &Client{
-		t:       t,
-		mu:      &sync.Mutex{},
-		results: make(map[reflect.Type]mockResult),
+		t:          t,
+		mu:         &sync.Mutex{},
+		results:    make(map[reflect.Type]mockResult),
+		getResults: make(map[ddb.GetKey]mockGetResult),
+	}
+}
+
+// MockGet mocks a DynamoDB Get operation.
+// The contents of the provided query will be used as the results.
+//
+// For example:
+//
+//	db := ddbmock.New()
+//	db.MockGet(ddb.GetKey{PK: "1", SK: "1"}, Apple{Color: "red"})
+//
+//	var got Apple
+//	db.Get(ctx, ddb.GetKey{PK: "1", SK: "1"}, &got)
+//	// got now contains {Result: Apple{Color: "red"}} as defined by MockGet.
+func (m *Client) MockGet(key ddb.GetKey, result interface{}) {
+
+	// acquire a mutex lock in case the client is being used across multiple goroutines.
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	m.getResults[key] = mockGetResult{
+		value: result,
 	}
 }
 
@@ -130,6 +161,25 @@ func (m *Client) Query(ctx context.Context, qb ddb.QueryBuilder, opts ...func(*d
 
 	// set the value of the QueryBuilder to our stored mock result.
 	reflect.ValueOf(qb).Elem().Set(reflect.ValueOf(got.value).Elem())
+
+	return got.res, nil
+}
+
+// Get returns mock query results based registered mock values.
+func (m *Client) Get(ctx context.Context, key ddb.GetKey, item ddb.Keyer, opts ...func(*ddb.GetOpts)) (*ddb.GetItemResult, error) {
+	got, ok := m.getResults[key]
+	if !ok {
+		m.t.Fatalf("no mock found for %+v - call MockGet() to set a mock response", key)
+		return nil, nil
+	}
+
+	// If we got an error, return it and don't set the results of the query.
+	if got.err != nil {
+		return nil, got.err
+	}
+
+	// set the value of the item to our stored mock result.
+	reflect.ValueOf(item).Elem().Set(reflect.ValueOf(got.value).Elem())
 
 	return got.res, nil
 }

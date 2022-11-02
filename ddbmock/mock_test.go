@@ -29,6 +29,15 @@ type thing struct {
 	ID string
 }
 
+func (t thing) DDBKeys() (ddb.Keys, error) {
+	k := ddb.Keys{
+		PK: "PK",
+		SK: "SK",
+	}
+
+	return k, nil
+}
+
 func TestMockQuery(t *testing.T) {
 	type testcase struct {
 		name string
@@ -129,6 +138,37 @@ func TestMockQueryWithErr(t *testing.T) {
 			_, err := m.Query(context.Background(), &q)
 			assert.Equal(t, tc.mockErr, err)
 			assert.Equal(t, tc.want, q.Result)
+		})
+	}
+}
+
+func TestMockGet(t *testing.T) {
+	type testcase struct {
+		name      string
+		want      thing
+		mockThing *thing
+		mockErr   error
+	}
+
+	testcases := []testcase{
+		{
+			name:      "ok",
+			want:      thing{ID: "hello"},
+			mockThing: &thing{ID: "hello"},
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			m := New(&mockTestReporter{})
+			if tc.mockThing != nil {
+				m.MockGet(ddb.GetKey{PK: "1", SK: "1"}, tc.mockThing)
+			}
+
+			var got thing
+			_, err := m.Get(context.Background(), ddb.GetKey{PK: "1", SK: "1"}, &got)
+			assert.Equal(t, tc.mockErr, err)
+			assert.Equal(t, tc.want, got)
 		})
 	}
 }
