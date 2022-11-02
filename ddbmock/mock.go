@@ -25,6 +25,9 @@ type Client struct {
 	DeleteBatchErr error
 	// TransactWriteItemsErr causes TransactWriteItems() to return an error if it is set
 	TransactWriteItemsErr error
+	// TransactionExecuteError causes Transaction objects created from this client
+	// to fail with this error if set.
+	TransactionExecuteErr error
 }
 
 // mockResult is the mocked result when Query() is called.
@@ -149,4 +152,8 @@ func (m *Client) Delete(ctx context.Context, item ddb.Keyer) error {
 
 func (m *Client) DeleteBatch(ctx context.Context, items ...ddb.Keyer) error {
 	return m.DeleteBatchErr
+}
+
+func (m *Client) NewTransaction() ddb.Transaction {
+	return &MockTransaction{ExecuteError: m.TransactionExecuteErr}
 }
