@@ -20,8 +20,9 @@ type QueryBuilder interface {
 }
 
 type QueryOpts struct {
-	PageToken string
-	Limit     int32
+	PageToken      string
+	Limit          int32
+	ConsistentRead bool
 }
 
 // QueryOutputUnmarshalers implement custom logic to
@@ -43,6 +44,15 @@ func Page(pageToken string) func(*QueryOpts) {
 func Limit(limit int32) func(*QueryOpts) {
 	return func(qo *QueryOpts) {
 		qo.Limit = limit
+	}
+}
+
+// ConsistentRead enables strong read consistency.
+// Strongly consistent reads are not supported on global secondary indexes.
+// https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.ReadConsistency.html
+func ConsistentRead() func(*QueryOpts) {
+	return func(qo *QueryOpts) {
+		qo.ConsistentRead = true
 	}
 }
 
@@ -99,6 +109,9 @@ func (c *Client) Query(ctx context.Context, qb QueryBuilder, opts ...func(*Query
 	if qo.Limit > 0 {
 		q.Limit = &qo.Limit
 	}
+
+	// set strong consistency if it's enabled
+	q.ConsistentRead = &qo.ConsistentRead
 
 	// query builders don't necessarily know which table the client uses,
 	// so update the query input to override the table name.
