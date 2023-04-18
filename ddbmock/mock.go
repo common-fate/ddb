@@ -147,6 +147,15 @@ func (m *Client) MockQueryWithErrWithResult(qb ddb.QueryBuilder, res *ddb.QueryR
 }
 
 // Query returns mock query results based on the type of the 'qb' argument.
+func (m *Client) All(ctx context.Context, qb ddb.QueryBuilder, opts ...func(*ddb.QueryOpts)) error {
+	_, err := m.Query(ctx, qb, opts...)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Query returns mock query results based on the type of the 'qb' argument.
 func (m *Client) Query(ctx context.Context, qb ddb.QueryBuilder, opts ...func(*ddb.QueryOpts)) (*ddb.QueryResult, error) {
 	t := reflect.TypeOf(qb)
 	got, ok := m.results[t]
