@@ -20,7 +20,7 @@ import (
 //
 // If the query returns a next page, then it will be loaded, until all results have been loaded from dynamodb
 // The final aggregated result will be set on the querybuilder field tagged with `ddb:"result"`
-func (c *Client) All(ctx context.Context, storage Storage, qb QueryBuilder, opts ...func(*QueryOpts)) error {
+func (c *Client) All(ctx context.Context, qb QueryBuilder, opts ...func(*QueryOpts)) error {
 	// Get the type of the `qb` value
 	qbType := reflect.TypeOf(qb).Elem()
 
@@ -48,7 +48,7 @@ func (c *Client) All(ctx context.Context, storage Storage, qb QueryBuilder, opts
 
 	for {
 		// Execute the query with the given QueryBuilder and options.
-		queryResult, err := storage.Query(ctx, qb, optsWithPage...)
+		queryResult, err := c.Query(ctx, qb, optsWithPage...)
 		if err != nil {
 			return err
 		}
