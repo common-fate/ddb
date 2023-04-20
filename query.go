@@ -7,6 +7,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/pkg/errors"
 )
 
@@ -29,6 +30,12 @@ type QueryOpts struct {
 // unmarshal the results of a DynamoDB QueryItems call.
 type QueryOutputUnmarshaler interface {
 	UnmarshalQueryOutput(out *dynamodb.QueryOutput) error
+}
+
+// QueryOutputUnmarshalerWithPagination implement custom logic to
+// unmarshal the results of a DynamoDB QueryItems call and are about to return the key of the last evaluated item for pagination to begin from.
+type QueryOutputUnmarshalerWithPagination interface {
+	UnmarshalQueryOutputWithPagination(out *dynamodb.QueryOutput) (map[string]types.AttributeValue, error)
 }
 
 // Page sets the pagination token to provide an offset for the query.
@@ -134,7 +141,22 @@ func (c *Client) Query(ctx context.Context, qb QueryBuilder, opts ...func(*Query
 		}
 		result.NextPage = s
 	}
-
+	// call the custom unmarshalling logic if the QueryBuilder implements it.
+	if rp, ok := qb.(QueryOutputUnmarshalerWithPagination); ok {
+		lastEvaluatedKey, err := rp.UnmarshalQueryOutputWithPagination(got)
+		if err != nil {
+			return nil, err
+		}
+		// marshal the LastEvaluatedKey into a pagination token if pagination is enabled.
+		if lastEvaluatedKey != nil {
+			s, err := c.tokenizer.MarshalToken(ctx, got.LastEvaluatedKey)
+			if err != nil {
+				return nil, errors.Wrap(err, "marshalling LastEvaluatedKey to page token")
+			}
+			result.NextPage = s
+		}
+		return result, nil
+	}
 	// call the custom unmarshalling logic if the QueryBuilder implements it.
 	if rp, ok := qb.(QueryOutputUnmarshaler); ok {
 		err = rp.UnmarshalQueryOutput(got)
