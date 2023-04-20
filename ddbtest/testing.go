@@ -16,7 +16,7 @@ type QueryTestCase struct {
 	Query        ddb.QueryBuilder
 	QueryOpts    []func(*ddb.QueryOpts)
 	Want         ddb.QueryBuilder
-	WantNextPage string
+	WantNextPage *string
 	WantErr      error
 }
 
@@ -52,7 +52,9 @@ func RunQueryTests(t *testing.T, c *ddb.Client, testcases []QueryTestCase) {
 					assert.Equal(t, tc.Want, tc.Query)
 				}
 				// assert that the query result is as expected
-				assert.Equal(t, tc.WantNextPage, result.NextPage)
+				if tc.WantNextPage != nil {
+					assert.Equal(t, *tc.WantNextPage, result.NextPage)
+				}
 			}
 		})
 	}
