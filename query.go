@@ -133,14 +133,6 @@ func (c *Client) Query(ctx context.Context, qb QueryBuilder, opts ...func(*Query
 		RawOutput: got,
 	}
 
-	// marshal the LastEvaluatedKey into a pagination token if pagination is enabled.
-	if got.LastEvaluatedKey != nil {
-		s, err := c.tokenizer.MarshalToken(ctx, got.LastEvaluatedKey)
-		if err != nil {
-			return nil, errors.Wrap(err, "marshalling LastEvaluatedKey to page token")
-		}
-		result.NextPage = s
-	}
 	// call the custom unmarshalling logic if the QueryBuilder implements it.
 	if rp, ok := qb.(QueryOutputUnmarshalerWithPagination); ok {
 		lastEvaluatedKey, err := rp.UnmarshalQueryOutputWithPagination(got)
@@ -149,13 +141,21 @@ func (c *Client) Query(ctx context.Context, qb QueryBuilder, opts ...func(*Query
 		}
 		// marshal the LastEvaluatedKey into a pagination token if pagination is enabled.
 		if lastEvaluatedKey != nil {
-			s, err := c.tokenizer.MarshalToken(ctx, got.LastEvaluatedKey)
+			s, err := c.tokenizer.MarshalToken(ctx, lastEvaluatedKey)
 			if err != nil {
 				return nil, errors.Wrap(err, "marshalling LastEvaluatedKey to page token")
 			}
 			result.NextPage = s
 		}
 		return result, nil
+	}
+	// marshal the LastEvaluatedKey into a pagination token if pagination is enabled.
+	if got.LastEvaluatedKey != nil {
+		s, err := c.tokenizer.MarshalToken(ctx, got.LastEvaluatedKey)
+		if err != nil {
+			return nil, errors.Wrap(err, "marshalling LastEvaluatedKey to page token")
+		}
+		result.NextPage = s
 	}
 	// call the custom unmarshalling logic if the QueryBuilder implements it.
 	if rp, ok := qb.(QueryOutputUnmarshaler); ok {
