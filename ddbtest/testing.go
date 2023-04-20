@@ -12,11 +12,12 @@ import (
 
 // QueryTestCase is a test case for running integration tests which call Query().
 type QueryTestCase struct {
-	Name      string
-	Query     ddb.QueryBuilder
-	QueryOpts []func(*ddb.QueryOpts)
-	Want      ddb.QueryBuilder
-	WantErr   error
+	Name         string
+	Query        ddb.QueryBuilder
+	QueryOpts    []func(*ddb.QueryOpts)
+	Want         ddb.QueryBuilder
+	WantNextPage string
+	WantErr      error
 }
 
 // RunQueryTests runs standardised integration tests to check the behaviour of a QueryBuilder.
@@ -24,7 +25,7 @@ func RunQueryTests(t *testing.T, c *ddb.Client, testcases []QueryTestCase) {
 	for _, tc := range testcases {
 		t.Run(tc.Name, func(t *testing.T) {
 
-			_, err := c.Query(context.Background(), tc.Query, tc.QueryOpts...)
+			result, err := c.Query(context.Background(), tc.Query, tc.QueryOpts...)
 			if err != nil && tc.WantErr == nil {
 				t.Fatal(err)
 			}
@@ -50,6 +51,8 @@ func RunQueryTests(t *testing.T, c *ddb.Client, testcases []QueryTestCase) {
 					// to fix our tests faster.
 					assert.Equal(t, tc.Want, tc.Query)
 				}
+				// assert that the query result is as expected
+				assert.Equal(t, tc.WantNextPage, result.NextPage)
 			}
 		})
 	}
