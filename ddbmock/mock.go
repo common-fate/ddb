@@ -15,7 +15,7 @@ var _ ddb.Storage = &Client{}
 type Client struct {
 	t          TestReporter
 	mu         *sync.Mutex
-	results    map[reflect.Type]mockResult
+	results    map[reflect.Type][]mockResult
 	getResults map[ddb.GetKey]mockGetResult
 	// DeleteErr causes Delete() to return an error if it is set
 	DeleteErr error
@@ -51,7 +51,7 @@ func New(t TestReporter) *Client {
 	return &Client{
 		t:          t,
 		mu:         &sync.Mutex{},
-		results:    make(map[reflect.Type]mockResult),
+		results:    make(map[reflect.Type][]mockResult),
 		getResults: make(map[ddb.GetKey]mockGetResult),
 	}
 }
@@ -96,9 +96,18 @@ func (m *Client) MockQuery(qb ddb.QueryBuilder) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	m.results[t] = mockResult{
+	m.results[t] = append(m.results[t], mockResult{
 		value: qb,
 		res:   &ddb.QueryResult{},
+	})
+}
+
+// MockQueries is a helper to set multiple query results at once.
+// it is equivalent to calling MockQuery multiple times.
+// see MockQuery for details
+func (m *Client) MockQueries(qb ...ddb.QueryBuilder) {
+	for i := range qb {
+		m.MockQuery(qb[i])
 	}
 }
 
@@ -122,11 +131,11 @@ func (m *Client) MockQueryWithErr(qb ddb.QueryBuilder, err error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	m.results[t] = mockResult{
+	m.results[t] = append(m.results[t], mockResult{
 		value: qb,
 		err:   err,
 		res:   &ddb.QueryResult{},
-	}
+	})
 }
 
 // MockQueryWithErrWithResult mocks a DynamoDB query.
@@ -139,11 +148,11 @@ func (m *Client) MockQueryWithErrWithResult(qb ddb.QueryBuilder, res *ddb.QueryR
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	m.results[t] = mockResult{
+	m.results[t] = append(m.results[t], mockResult{
 		value: qb,
 		err:   err,
 		res:   res,
-	}
+	})
 }
 
 // Query returns mock query results based on the type of the 'qb' argument.
@@ -163,16 +172,25 @@ func (m *Client) Query(ctx context.Context, qb ddb.QueryBuilder, opts ...func(*d
 		m.t.Fatalf("no mock found for %s - call RegisterQuery(&%s{}) to set a mock response", t, reflect.TypeOf(qb).Elem().Name())
 		return nil, nil
 	}
+	if len(got) == 0 {
+		m.t.Fatalf("all mocks for %s have been used - you need to set more mock queries", t, reflect.TypeOf(qb).Elem().Name())
+		return nil, nil
+	}
+
+	// get the top of the list
+	result := got[0]
+	// remove the top of the list
+	m.results[t] = got[1:]
 
 	// If we got an error, return it and don't set the results of the query.
-	if got.err != nil {
-		return nil, got.err
+	if result.err != nil {
+		return nil, result.err
 	}
 
 	// set the value of the QueryBuilder to our stored mock result.
-	reflect.ValueOf(qb).Elem().Set(reflect.ValueOf(got.value).Elem())
+	reflect.ValueOf(qb).Elem().Set(reflect.ValueOf(result.value).Elem())
 
-	return got.res, nil
+	return result.res, nil
 }
 
 // Get returns mock query results based registered mock values.
