@@ -180,7 +180,12 @@ func (m *Client) Query(ctx context.Context, qb ddb.QueryBuilder, opts ...func(*d
 	// get the top of the list
 	result := got[0]
 	// remove the top of the list
-	m.results[t] = got[1:]
+	if len(got) > 1 {
+		m.results[t] = got[1:]
+	} else {
+		// Handle the case when got has only one element
+		m.results[t] = []mockResult{}
+	}
 
 	// If we got an error, return it and don't set the results of the query.
 	if result.err != nil {
