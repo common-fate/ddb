@@ -7,6 +7,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/pkg/errors"
 )
 
@@ -24,11 +25,17 @@ type QueryOpts struct {
 	Limit          int32
 	ConsistentRead bool
 }
+type UnmarshalResult struct {
+	// PaginationToken is optionally returned when a query loads items that span
+	// multiple DynamoDB rows. Rather than returning a token pointing halfway through
+	// an item, the unmarshal method can return a token pointing to the end of the previous item.
+	PaginationToken map[string]types.AttributeValue
+}
 
 // QueryOutputUnmarshalers implement custom logic to
 // unmarshal the results of a DynamoDB QueryItems call.
 type QueryOutputUnmarshaler interface {
-	UnmarshalQueryOutput(out *dynamodb.QueryOutput) error
+	UnmarshalQueryOutput(out *dynamodb.QueryOutput) (*UnmarshalResult, error)
 }
 
 // Page sets the pagination token to provide an offset for the query.
@@ -134,12 +141,18 @@ func (c *Client) Query(ctx context.Context, qb QueryBuilder, opts ...func(*Query
 		}
 		result.NextPage = s
 	}
-
 	// call the custom unmarshalling logic if the QueryBuilder implements it.
 	if rp, ok := qb.(QueryOutputUnmarshaler); ok {
-		err = rp.UnmarshalQueryOutput(got)
+		unmarshalResult, err := rp.UnmarshalQueryOutput(got)
 		if err != nil {
 			return nil, err
+		}
+		if unmarshalResult.PaginationToken != nil {
+			s, err := c.tokenizer.MarshalToken(ctx, unmarshalResult.PaginationToken)
+			if err != nil {
+				return nil, errors.Wrap(err, "marshalling unmarshalResult.PaginationToken to page token")
+			}
+			result.NextPage = s
 		}
 		return result, nil
 	}
